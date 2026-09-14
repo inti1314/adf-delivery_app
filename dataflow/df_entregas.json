@@ -1,0 +1,72 @@
+{
+	"name": "df_entregas",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "entregas_csv",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "entregas_sql",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "split1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          entrega_id as string,",
+				"          pedido_id as string,",
+				"          repartidor_id as string,",
+				"          hora_salida as string,",
+				"          hora_entrega as string,",
+				"          tiempo_entrega_min as string,",
+				"          distancia_km as string,",
+				"          estado_entrega as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 derive(estado_entrega = upper(trim(estado_entrega))) ~> derivedColumn1",
+				"derivedColumn1 split(!isNull(entrega_id) && trim(entrega_id) != '' && !isNull(pedido_id) && trim(pedido_id) != '' && !isNull(repartidor_id) && trim(repartidor_id) != '',",
+				"     disjoint: false) ~> split1@(valido, rechazado)",
+				"split1@valido sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          entrega_id as string,",
+				"          pedido_id as string,",
+				"          repartidor_id as string,",
+				"          hora_salida as timestamp,",
+				"          hora_entrega as timestamp,",
+				"          tiempo_entrega_min as integer,",
+				"          distancia_km as decimal(6,2),",
+				"          estado_entrega as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}
